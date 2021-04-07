@@ -27,7 +27,7 @@ const pgmName string = "gostat"
 const pgmDesc string = "Display and set file time stamps"
 const pgmURL string = "https://github.com/jftuga/gostat"
 const pgmLicense = "https://github.com/jftuga/gostat/blob/main/LICENSE"
-const pgmVersion string = "1.0.0"
+const pgmVersion string = "1.0.1"
 
 // expandGlobs - expand file wildcards into a list of file names
 func expandGlobs(args []string) []string {
@@ -91,9 +91,10 @@ func getFileTimes(file string) map [string]time.Time {
 }
 
 // showFileTimes - output file name, size; birth, create, modify, and access times
-func showFileTimes(args []string) {
+func showFileTimes(args []string) int {
 	var fi os.FileInfo
 	var err error
+	count := 0
 	for _, file := range expandGlobs(args) {
 		fmt.Printf("name  : %s\n", file)
 		fi, err = os.Stat(file)
@@ -101,6 +102,7 @@ func showFileTimes(args []string) {
 			log.Printf("Lstat Error: %s\n", err)
 			continue
 		}
+		count += 1
 		fmt.Printf("size  : %s\n", Format(fi.Size()))
 		t := getFileTimes(file)
 		if b, found := t["b"]; found {
@@ -114,6 +116,7 @@ func showFileTimes(args []string) {
 
 		fmt.Println()
 	}
+	return count
 }
 
 // convertStr - convert a string to an int
@@ -227,5 +230,8 @@ func main() {
 		os.Exit(0)
 	}
 
-	showFileTimes(args)
+	count := showFileTimes(args)
+	if count == 0 {
+		log.Fatalf("Error: %s did not match any files\n", args)
+	}
 }
