@@ -15,8 +15,8 @@ build:
       - 7
   ignore:
     - goos: windows
-    - goarch: arm
-    - goarm: 7
+      goarch: arm
+      goarm: 7
 archives:
     - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ .Arm }}"
       format: tar.xz
