@@ -20,21 +20,21 @@ import (
 	"strconv"
 	"time"
 
-	"gopkg.in/djherbis/times.v1"
+	"github.com/djherbis/times"
 )
 
 const pgmName string = "gostat"
 const pgmDesc string = "Display and set file time stamps"
 const pgmURL string = "https://github.com/jftuga/gostat"
 const pgmLicense = "https://github.com/jftuga/gostat/blob/main/LICENSE"
-const pgmVersion string = "1.0.1"
+const pgmVersion string = "1.0.2"
 
 // expandGlobs - expand file wildcards into a list of file names
 func expandGlobs(args []string) []string {
 	var allFiles []string
 	for _, glob := range args {
 		globbed, err := filepath.Glob(glob)
-		if err != nil{
+		if err != nil {
 			log.Printf("Glob Error: %s\n", err)
 			continue
 		}
@@ -44,6 +44,7 @@ func expandGlobs(args []string) []string {
 	}
 	return allFiles
 }
+
 // Format - add thousands commas to an integer
 // https://stackoverflow.com/a/31046325/452281
 func Format(n int64) string {
@@ -70,9 +71,10 @@ func Format(n int64) string {
 		}
 	}
 }
+
 // getFileTimes - return a small map containing time metadata for a single file
-func getFileTimes(file string) map [string]time.Time {
-	fileTimes := make(map [string]time.Time)
+func getFileTimes(file string) map[string]time.Time {
+	fileTimes := make(map[string]time.Time)
 	t, err := times.Stat(file)
 	if err != nil {
 		log.Printf("getFileTimes Error: %s\n", err.Error())
@@ -152,7 +154,7 @@ func setFileTime(args []string, dt, op string) {
 		} else if "a" == op {
 			fmt.Println(createDate(dt))
 			err = os.Chtimes(file, createDate(dt), currentTimes["m"])
-		}  else if "b" == op {
+		} else if "b" == op {
 			dateTime := createDate(dt)
 			err = os.Chtimes(file, dateTime, dateTime)
 		} else {
@@ -162,7 +164,7 @@ func setFileTime(args []string, dt, op string) {
 			log.Printf("os.Chtimes Error: %s\n", err.Error())
 			continue
 		}
-		showFileTimes([]string {file})
+		showFileTimes([]string{file})
 	}
 }
 
