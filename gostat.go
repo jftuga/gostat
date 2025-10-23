@@ -2,10 +2,13 @@
 gostat.go
 -John Taylor
 Mar-29-2021
+Oct-23-2025 - small bug fixes, code improvements, added tests
 
-Display and set file time stamps
-LICENSE: MIT License
+A cross-platform command-line utility for viewing and modifying file timestamps.
 
+This tool displays detailed timestamp information (birth time, change time, modification time,
+and access time) for files and directories. It can also modify access and modification times
+with support for glob patterns to process multiple files at once.
 */
 
 package main
@@ -27,7 +30,13 @@ const pgmName string = "gostat"
 const pgmDesc string = "Display and set file time stamps"
 const pgmURL string = "https://github.com/jftuga/gostat"
 const pgmLicense = "https://github.com/jftuga/gostat/blob/main/LICENSE"
-const pgmVersion string = "1.0.3"
+const pgmVersion string = "1.1.0"
+
+const (
+	OpAccess = "a"
+	OpModify = "m"
+	OpBoth   = "b"
+)
 
 // expandGlobs - expand file wildcards into a list of file names
 // If a pattern doesn't match any files, check if it exists as a literal filename
@@ -54,9 +63,9 @@ func expandGlobs(args []string) []string {
 	return allFiles
 }
 
-// Format - add thousands commas to an integer
+// FormatWithCommas - add thousands commas to an integer
 // https://stackoverflow.com/a/31046325/452281
-func Format(n int64) string {
+func FormatWithCommas(n int64) string {
 	in := strconv.FormatInt(n, 10)
 	numOfDigits := len(in)
 	if n < 0 {
@@ -114,7 +123,7 @@ func showFileTimes(args []string) int {
 			continue
 		}
 		count += 1
-		fmt.Printf("size  : %s\n", Format(fi.Size()))
+		fmt.Printf("size  : %s\n", FormatWithCommas(fi.Size()))
 		t := getFileTimes(file)
 		if b, found := t["b"]; found {
 			fmt.Printf("btime : %s\n", b)
@@ -130,45 +139,33 @@ func showFileTimes(args []string) int {
 	return count
 }
 
-// convertStr - convert a string to an int
-func convertStr(location string, s string) int {
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		log.Fatalf("Invalid %s: %s\n", location, s)
-	}
-	return i
-}
-
 // createDate - return a time.Time value when given a string in YYYYMMDD.HHMMSS format
-func createDate(dt string) time.Time {
-	year := convertStr("year", dt[0:4])
-	month := convertStr("month", dt[4:6])
-	day := convertStr("day", dt[6:8])
-	hour := convertStr("hour", dt[9:11])
-	minute := convertStr("minute", dt[11:13])
-	second := convertStr("second", dt[13:15])
-
-	return time.Date(year, time.Month(month), day, hour, minute, second, 0, time.Now().Location())
+func createDate(dt string) (time.Time, error) {
+	return time.ParseInLocation("20060102.150405", dt, time.Now().Location())
 }
 
 // setFileTime - update a timestamps for a group of files
 // op should equal: (a)ccess, (m)odify, (b)oth
 func setFileTime(args []string, dt, op string) {
-	var err error
+	// Parse the date once before processing any files
+	newTime, err := createDate(dt)
+	if err != nil {
+		log.Fatalf("Error parsing date '%s': %v\n", dt, err)
+	}
 
 	for _, file := range expandGlobs(args) {
 		currentTimes := getFileTimes(file)
-		if "m" == op {
-			err = os.Chtimes(file, currentTimes["a"], createDate(dt))
-		} else if "a" == op {
-			fmt.Println(createDate(dt))
-			err = os.Chtimes(file, createDate(dt), currentTimes["m"])
-		} else if "b" == op {
-			dateTime := createDate(dt)
-			err = os.Chtimes(file, dateTime, dateTime)
+
+		if OpModify == op {
+			err = os.Chtimes(file, currentTimes["a"], newTime)
+		} else if OpAccess == op {
+			err = os.Chtimes(file, newTime, currentTimes["m"])
+		} else if OpBoth == op {
+			err = os.Chtimes(file, newTime, newTime)
 		} else {
 			log.Fatalf("Invalid op: %s\n", op)
 		}
+
 		if err != nil {
 			log.Printf("os.Chtimes Error: %s\n", err.Error())
 			continue
@@ -215,17 +212,17 @@ func main() {
 	newTime := ""
 	if len(*argsAccess) > 0 {
 		wantChange += 1
-		op = "a"
+		op = OpAccess
 		newTime = *argsAccess
 	}
 	if len(*argsModify) > 0 {
 		wantChange += 1
-		op = "m"
+		op = OpModify
 		newTime = *argsModify
 	}
 	if len(*argsBoth) > 0 {
 		wantChange += 1
-		op = "b"
+		op = OpBoth
 		newTime = *argsBoth
 	}
 	if wantChange > 1 {
@@ -233,7 +230,7 @@ func main() {
 	}
 
 	if wantChange > 0 {
-		validDT := regexp.MustCompile(`20\d{2}\d{2}\d{2}.\d{2}\d{2}\d{2}$`)
+		validDT := regexp.MustCompile(`^\d{8}\.\d{6}$`)
 		if validDT.MatchString(newTime) == false {
 			log.Fatalf("Error: invalid time stamp: %s\nPlease use: YYYYMMDD.HHMMSS\n", newTime)
 		}
@@ -243,6 +240,6 @@ func main() {
 
 	count := showFileTimes(args)
 	if count == 0 {
-		log.Fatalf("Error: '%s' did not match any files\n", args)
+		log.Fatalf("Error: '%v' did not match any files\n", args)
 	}
 }
