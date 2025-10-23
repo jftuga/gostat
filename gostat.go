@@ -145,7 +145,7 @@ func createDate(dt string) (time.Time, error) {
 }
 
 // setFileTime - update a timestamps for a group of files
-// op should equal: (a)ccess, (m)odify, (b)oth
+// op should be one of the following: OpModify, OpAccess, OpBoth
 func setFileTime(args []string, dt, op string) {
 	// Parse the date once before processing any files
 	newTime, err := createDate(dt)
