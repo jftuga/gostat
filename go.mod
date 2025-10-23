@@ -1,6 +1,6 @@
 module github.com/jftuga/gostat
 
-go 1.21.5
+go 1.25.3
 
 require github.com/djherbis/times v1.6.0
 

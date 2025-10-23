@@ -1,9 +1,11 @@
+version: 2
+
 before:
   hooks:
     - go mod tidy
 
 builds:
-  - id: gostat-id1
+  - id: gostat
     binary: gostat
     ldflags:
       - -extldflags "-static" -s -w -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser -X main.Version={{.Version}} -X main.Revision={{.ShortCommit}}
@@ -32,7 +34,7 @@ builds:
       - goos: darwin
         goarch: ppc64le
 
-  - id: gostat-id2
+  - id: gostat-win
     binary: gostat
     ldflags:
       - -extldflags "-static" -s -w -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser -X main.Version={{.Version}} -X main.Revision={{.ShortCommit}}
@@ -73,6 +75,7 @@ brews:
     repository:
       owner: jftuga
       name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TOKEN }}"
     commit_author:
       name: jftuga
       email: jftuga@users.noreply.github.com
