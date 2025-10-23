@@ -27,9 +27,10 @@ const pgmName string = "gostat"
 const pgmDesc string = "Display and set file time stamps"
 const pgmURL string = "https://github.com/jftuga/gostat"
 const pgmLicense = "https://github.com/jftuga/gostat/blob/main/LICENSE"
-const pgmVersion string = "1.0.2"
+const pgmVersion string = "1.0.3"
 
 // expandGlobs - expand file wildcards into a list of file names
+// If a pattern doesn't match any files, check if it exists as a literal filename
 func expandGlobs(args []string) []string {
 	var allFiles []string
 	for _, glob := range args {
@@ -38,8 +39,16 @@ func expandGlobs(args []string) []string {
 			log.Printf("Glob Error: %s\n", err)
 			continue
 		}
-		for _, file := range globbed {
-			allFiles = append(allFiles, file)
+
+		if len(globbed) > 0 {
+			// Glob expansion found matches
+			allFiles = append(allFiles, globbed...)
+		} else {
+			// No glob matches found, check if it exists as a literal filename
+			// This handles cases where the filename contains glob metacharacters
+			if _, err := os.Stat(glob); err == nil {
+				allFiles = append(allFiles, glob)
+			}
 		}
 	}
 	return allFiles
@@ -234,6 +243,6 @@ func main() {
 
 	count := showFileTimes(args)
 	if count == 0 {
-		log.Fatalf("Error: %s did not match any files\n", args)
+		log.Fatalf("Error: '%s' did not match any files\n", args)
 	}
 }
